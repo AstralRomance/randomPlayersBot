@@ -21,7 +21,7 @@ def add_data(string_to_add: str, target_file: str):
 
 @dp.message_handler(commands=['start'])
 async def start_command(message: types.Message):
-    await bot.send_message(message.chat.id, text='Для добавления данных "/add_player имя игрока" или "/add_deck название колоды"; Для выдачи колод игрокам используй /decks; Для очистки используй /clean')
+    await bot.send_message(message.chat.id, text='Для добавления данных "/pl имя игрока" или "/dk название колоды"; Для выдачи колод игрокам используй /decks; Для очистки используй /clean')
 
 @dp.message_handler(commands=['pl'])
 async def add_player(message: types.Message):
