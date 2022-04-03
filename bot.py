@@ -21,7 +21,7 @@ def add_data(data_to_add: list, target_file: str):
 
 @dp.message_handler(commands=['start'])
 async def start_command(message: types.Message):
-    await bot.send_message(message.chat.id, text='Для добавления игроков и колод используй команду "/pl" и "/dk, после чего вводи имена игроков, например: /pl Игрок 1\nИгрок2 и т.д.\nДля выдачи колод используй команду /generate.\nДля просмотре списков используй команды /decks и /players.\nНе забудь прибраться с помощью команды /clean"')
+    await bot.send_message(message.chat.id, text='Для добавления игроков и колод используй команду "/pl" и "/dk, после чего вводи имена игроков, например: /pl Игрок 1\nИгрок2 и т.д.\nДля удаления игроков используй команды /rpl и /rdk\nДля выдачи колод используй команду /go.\nДля просмотра списков используй команды /decks и /players.\nНе забудь прибраться с помощью команды /clean"')
 
 @dp.message_handler(commands=['pl'])
 async def add_player(message: types.Message):
@@ -39,7 +39,7 @@ async def add_deck(message: types.Message):
 
 @dp.message_handler(commands=['help'])
 async def help_message(message: types.Message):
-    await bot.send_message(message.chat.id, text='Для добавления игроков и колод используй команду "/pl" и "/dk, после чего вводи имена игроков, например: /pl Игрок 1\nИгрок2 и т.д.\nДля выдачи колод используй команду /generate.\nДля просмотре списков используй команды /decks и /players.\nНе забудь прибраться с помощью команды /clean"')
+    await bot.send_message(message.chat.id, text='Для добавления игроков и колод используй команду "/pl" и "/dk, после чего вводи имена игроков, например: /pl Игрок 1\nИгрок2 и т.д.\nДля удаления игроков используй команды /rpl и /rdk\nДля выдачи колод используй команду /go.\nДля просмотра списков используй команды /decks и /players.\nНе забудь прибраться с помощью команды /clean"')
 
 @dp.message_handler(commands=['players', 'decks'])
 async def get_list(message: types.Message):
@@ -55,14 +55,46 @@ async def get_list(message: types.Message):
         target_file = 'random-decks.json'
         header = 'Текущие колоды:\n'
     try:
-        with open(target_file) as players_file:
-            file_data = json.load(players_file)
+        with open(target_file) as raw_file:
+            file_data = json.load(raw_file)
             output_string = '\n'.join([i for i in file_data])
             await bot.send_message(message.chat.id, text=f'{header}{output_string}')
     except FileNotFoundError:
         await bot.send_message(message.chat.id, text=errormsg)
 
-@dp.message_handler(commands=['generate'])
+@dp.message_handler(commands=['rpl', 'rdk'])
+async def remove_element(message: types.Message):
+    parsed_message = message.text.split(' ', 1)
+    elements_to_remove = parsed_message[1].split('\n')
+    remove_failed = []
+    removed = []
+    if parsed_message[0] == '/rpl':
+        target_file = 'random-players.json'
+    else:
+        target_file = 'random-decks.json'
+    try:
+        with open(target_file) as raw_file:
+            file_data = json.load(raw_file)
+            file_data = [el.strip() for el in file_data]
+        for rm_element in elements_to_remove:
+            if rm_element in file_data:
+                file_data.remove(rm_element)
+                removed.append(rm_element)
+            else:
+                remove_failed.append(rm_element)
+                continue
+        removed_outp = '\n'.join([el for el in removed])
+        remove_failed_outp = '\n'.join([el for el in remove_failed])
+        if removed:
+            with open(target_file, 'w') as raw_file:
+                json.dump(file_data, raw_file)
+        target_output = 'Удалено\n' + removed_outp + '\nУдаление не удалось:\n' + remove_failed_outp
+        await bot.send_message(message.chat.id, text=target_output)
+    except FileNotFoundError:
+        await bot.send_message(message.chat.id, text='Сначала нужно добавить игроков.')
+
+
+@dp.message_handler(commands=['go'])
 async def generate_data(message: types.Message):
     with open('random-players.json', 'r') as target_info:
         players = json.load(target_info)
@@ -74,7 +106,6 @@ async def generate_data(message: types.Message):
         await bot.send_message(message.chat.id, f'Получается {decks} колод на {players} игроков. Нельзя сгенерировать пары.')
     
     for _ in range(10):
-        random.shuffle(players)
         random.shuffle(decks)
     
     target_output_data = dict(zip(players, decks))
@@ -91,7 +122,7 @@ async def clean_data(message: types.Message):
             os.remove(target_file)
         except Exception as e:
             continue
-    bot.send_message(message.chat.id, 'Файлы удалены. Можно дать новый список.')
+    await bot.send_message(message.chat.id, 'Файлы удалены. Можно дать новый список.')
 
 if __name__ == '__main__':
     executor.start_polling(dp, skip_updates=True)
